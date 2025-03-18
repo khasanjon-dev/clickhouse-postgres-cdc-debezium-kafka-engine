@@ -81,26 +81,6 @@ services:
       retries: 5
 
 
-  postgres:
-    image: postgres:16
-    restart: always
-    container_name: postgres
-    ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 1
-      POSTGRES_DB: test_db
-    command: [ 'postgres', '-c', 'wal_level=logical' ]
-
-    healthcheck:
-      test: [ 'CMD', 'psql', '-U', 'postgres', '-c', 'SELECT 1' ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./sql-commands/postgresql/trigger.sql:/tmp/trigger.sql
 
   console:
     image: docker.redpanda.com/redpandadata/console:v2.3.8
@@ -119,25 +99,7 @@ services:
               url: http://debezium:8083
     ports:
       - "9080:8080"
-  clickhouse:
-    image: clickhouse/clickhouse-server:24.8
-    container_name: clickhouse
-    volumes:
-      - clickhouse_data:/var/lib/clickhouse
-      - ./compose/clickhouse-server/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
-      - ./compose/clickhouse-server/users.d/users.xml:/etc/clickhouse-server/users.d/users.xml
-    ports:
-      - "8123:8123"
-      - "9004:9004"
-    depends_on:
-      - clickhouse_keeper
-  clickhouse_keeper:
-    image: clickhouse/clickhouse-keeper:24.8
-    container_name: clickhouse_keeper
-    volumes:
-      - ./compose/clickhouse-keeper/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml
-    ports:
-      - "9181:9181"
+
 
 
   consumer_ddl_logs:
@@ -159,5 +121,3 @@ services:
 volumes:
   zookeeper_data:
   kafka_data:
-  postgres_data:
-  clickhouse_data:
