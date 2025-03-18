@@ -1,0 +1,28 @@
+{
+  "name": "ddl-connector",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "postgres",
+    "database.password": "1",
+    "database.dbname": "postgres",
+    "database.server.name": "pg",
+    "plugin.name": "pgoutput",
+    "publication.name": "ddl_logs",
+    "slot.name": "ddl_logs",
+    "table.include.list": "public.ddl_logs",
+    "topic.prefix": "ddl",
+    "topic.creation.enable": "true",
+    "tasks.max": "1",
+    "topic.creation.default.cleanup.policy": "delete",
+    "topic.creation.default.partitions": "1",
+    "topic.creation.default.replication.factor": "1",
+    "topic.creation.default.retention.ms": "604800000",
+    "transforms": "changes,route",
+    "transforms.changes.type": "io.debezium.transforms.ExtractChangedRecordState",
+    "transforms.route.type": "org.apache.kafka.connect.transforms.RegexRouter",
+    "transforms.route.regex": "ddl\\.(.*)\\.ddl_logs",
+    "transforms.route.replacement": "ddl_logs"
+  }
+}

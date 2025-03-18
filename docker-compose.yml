@@ -1,0 +1,163 @@
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.8.0
+    container_name: zookeeper
+    ports:
+      - '2181:2181'
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: echo srvr | nc zookeeper 2181 || exit 1
+      start_period: 10s
+      retries: 20
+      interval: 10s
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper
+  kafka_broker:
+    image: confluentinc/cp-kafka:7.8.0
+    container_name: kafka_broker
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "29092:29092"
+      - "9092:9092"
+      - "9101:9101"
+      - "9094:9094"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka_broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+    healthcheck:
+      test: nc -z localhost 9092 || exit -1
+      start_period: 15s
+      interval: 5s
+      timeout: 10s
+      retries: 10
+    volumes:
+      - kafka_data:/var/lib/kafka
+
+  debezium:
+    image: debezium/connect:2.7.3.Final
+    restart: always
+    container_name: debezium
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka_broker:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    environment:
+      BOOTSTRAP_SERVERS: kafka_broker:29092
+      GROUP_ID: 1
+      CONFIG_STORAGE_TOPIC: connect_configs
+      STATUS_STORAGE_TOPIC: connect_statuses
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      ENABLE_DEBEZIUM_SCRIPTING: 'true'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'curl',
+          '--silent',
+          '--fail',
+          '-X',
+          'GET',
+          'http://localhost:8083/connectors',
+        ]
+      start_period: 10s
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+
+  postgres:
+    image: postgres:16
+    restart: always
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: 1
+      POSTGRES_DB: test_db
+    command: [ 'postgres', '-c', 'wal_level=logical' ]
+
+    healthcheck:
+      test: [ 'CMD', 'psql', '-U', 'postgres', '-c', 'SELECT 1' ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./sql-commands/postgresql/trigger.sql:/tmp/trigger.sql
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:v2.3.8
+    restart: always
+    entrypoint: /bin/sh
+    command: -c "echo \"$$CONSOLE_CONFIG_FILE\" > /tmp/config.yml; /app/console"
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["kafka_broker:29092"]
+        connect:
+          enabled: true
+          clusters:
+            - name: production
+              url: http://debezium:8083
+    ports:
+      - "9080:8080"
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    container_name: clickhouse
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./compose/clickhouse-server/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./compose/clickhouse-server/users.d/users.xml:/etc/clickhouse-server/users.d/users.xml
+    ports:
+      - "8123:8123"
+      - "9004:9004"
+    depends_on:
+      - clickhouse_keeper
+  clickhouse_keeper:
+    image: clickhouse/clickhouse-keeper:24.8
+    container_name: clickhouse_keeper
+    volumes:
+      - ./compose/clickhouse-keeper/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml
+    ports:
+      - "9181:9181"
+
+
+  consumer_ddl_logs:
+    build:
+      context: .
+      dockerfile: compose/kafka-consumers/ddl_logs/Dockerfile
+    container_name: consumer_ddl_logs
+    depends_on:
+      - kafka_broker
+      - clickhouse
+    volumes:
+      - ./consumers/ddl_logs.py:/app/ddl_logs.py
+    env_file:
+      - .env
+    restart: always
+    command: python /app/ddl_logs.py
+
+
+volumes:
+  zookeeper_data:
+  kafka_data:
+  postgres_data:
+  clickhouse_data:
