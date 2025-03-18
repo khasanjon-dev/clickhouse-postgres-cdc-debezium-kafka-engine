@@ -14,6 +14,7 @@ services:
       interval: 10s
     volumes:
       - zookeeper_data:/var/lib/zookeeper
+
   kafka_broker:
     image: confluentinc/cp-kafka:7.8.0
     container_name: kafka_broker
@@ -80,8 +81,6 @@ services:
       timeout: 5s
       retries: 5
 
-
-
   console:
     image: docker.redpanda.com/redpandadata/console:v2.3.8
     restart: always
@@ -100,13 +99,11 @@ services:
     ports:
       - "9080:8080"
 
-
-
-  consumer_ddl_logs:
+  ddl_logs:
     build:
       context: .
       dockerfile: compose/kafka-consumers/ddl_logs/Dockerfile
-    container_name: consumer_ddl_logs
+    container_name: ddl_logs
     depends_on:
       - kafka_broker
       - clickhouse
@@ -116,7 +113,6 @@ services:
       - .env
     restart: always
     command: python /app/ddl_logs.py
-
 
 volumes:
   zookeeper_data:
