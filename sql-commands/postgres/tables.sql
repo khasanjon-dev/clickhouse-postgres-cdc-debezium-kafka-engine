@@ -6,6 +6,8 @@ CREATE TABLE users
     created_at TIMESTAMP DEFAULT NOW()
 );
 
+select  * from users limit 10;
+
 -- CREATE TABLE orders
 -- (
 --     id         SERIAL PRIMARY KEY,
@@ -21,6 +23,8 @@ SELECT 'User_' || generate_series,
        'user' || generate_series || '@example.com',
        NOW() - (random() * interval '5 years')
 FROM generate_series(1, 5000000);
+
+select count(*) from users;
 
 
 -- INSERT INTO orders (user_id, amount, created_at)

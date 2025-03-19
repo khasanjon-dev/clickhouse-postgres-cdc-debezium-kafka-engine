@@ -18,7 +18,6 @@ services:
   kafka_broker:
     image: confluentinc/cp-kafka:7.8.0
     container_name: kafka_broker
-    hostname: kafka_broker
     depends_on:
       zookeeper:
         condition: service_healthy

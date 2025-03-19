@@ -28,6 +28,8 @@
     "transforms.route.regex": "all\\.(.*)",
     "transforms.route.replacement": "all_tables",
     "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false",
     "decimal.handling.mode": "double",
     "time.precision.mode": "connect"
   }

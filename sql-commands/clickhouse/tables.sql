@@ -26,10 +26,10 @@ CREATE TABLE kafka_all_tables
 CREATE MATERIALIZED VIEW users_mv
     TO users
 AS
-SELECT JSONExtractString(after, 'id')                     AS id,
-       JSONExtractString(after, 'name')                   AS name,
-       JSONExtractString(after, 'email')                  AS email,
-       toDateTime(JSONExtractString(after, 'created_at')) AS created_at
+SELECT JSONExtractString(after, 'id')                          AS id,
+       JSONExtractString(after, 'name')                        AS name,
+       JSONExtractString(after, 'email')                       AS email,
+       toDateTime64(JSONExtractString(after, 'created_at'), 3) AS created_at
 FROM kafka_all_tables
 WHERE JSONExtractString(source, 'table') = 'users';
 
@@ -39,12 +39,11 @@ drop table kafka_all_tables;
 
 drop view users_mv;
 
-select count(*) from users;
+
+select count(*)
+from users;
 
 
-SELECT *
-FROM kafka_all_tables
-LIMIT 10;
-
-
-SET stream_like_engine_allow_direct_select  = 1;
+select *
+from users
+limit 10;
