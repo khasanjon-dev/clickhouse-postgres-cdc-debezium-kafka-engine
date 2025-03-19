@@ -31,7 +31,7 @@ SELECT JSONExtractString(after, 'id')                          AS id,
        JSONExtractString(after, 'email')                       AS email,
        toDateTime64(JSONExtractString(after, 'created_at'), 3) AS created_at
 FROM kafka_all_tables
-WHERE JSONExtractString(source, 'table') = 'users';
+WHERE JSONExtractString(source, 'table') = 'users' AND JSONExtractString(source, 'schema') = 'public';
 
 
 

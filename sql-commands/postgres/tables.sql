@@ -6,29 +6,28 @@ CREATE TABLE users
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-select  * from users limit 10;
 
--- CREATE TABLE orders
--- (
---     id         SERIAL PRIMARY KEY,
---     user_id    INT,
---     amount     DECIMAL(10, 2),
---     created_at TIMESTAMP DEFAULT NOW()
--- );
-
+CREATE TABLE orders
+(
+    id         SERIAL PRIMARY KEY,
+    user_id    INT,
+    amount     DECIMAL(10, 2),
+    created_at TIMESTAMP DEFAULT NOW()
+);
 
 
 INSERT INTO users (name, email, created_at)
-SELECT 'User_' || generate_series,
+SELECT 'User_' || generate_series,z
        'user' || generate_series || '@example.com',
        NOW() - (random() * interval '5 years')
+FROM generate_series(1, 50000);
+
+select count(*)
+from users;
+
+
+INSERT INTO orders (user_id, amount, created_at)
+SELECT floor(random() * 5000000) + 1,
+       round((random() * 1000 + 10)::numeric, 2),
+       NOW() - (random() * interval '5 years')
 FROM generate_series(1, 5000000);
-
-select count(*) from users;
-
-
--- INSERT INTO orders (user_id, amount, created_at)
--- SELECT floor(random() * 5000000) + 1,
---        round((random() * 1000 + 10)::numeric, 2),
---        NOW() - (random() * interval '5 years')
--- FROM generate_series(1, 5000000);
