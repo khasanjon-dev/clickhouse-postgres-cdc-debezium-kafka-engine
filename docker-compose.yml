@@ -18,6 +18,7 @@ services:
   kafka_broker:
     image: confluentinc/cp-kafka:7.8.0
     container_name: kafka_broker
+    hostname: kafka_broker
     depends_on:
       zookeeper:
         condition: service_healthy
@@ -46,14 +47,14 @@ services:
       retries: 10
     volumes:
       - kafka_data:/var/lib/kafka
+  #    expose:
+  #      - 9092
 
   debezium:
     image: debezium/connect:2.7.3.Final
     restart: always
     container_name: debezium
     depends_on:
-      postgres:
-        condition: service_healthy
       kafka_broker:
         condition: service_healthy
     ports:
@@ -83,6 +84,7 @@ services:
 
   console:
     image: docker.redpanda.com/redpandadata/console:v2.3.8
+    container_name: interface_kafka_topic
     restart: always
     entrypoint: /bin/sh
     command: -c "echo \"$$CONSOLE_CONFIG_FILE\" > /tmp/config.yml; /app/console"
@@ -99,6 +101,17 @@ services:
     ports:
       - "9080:8080"
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:25.1
+    container_name: clickhouse
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ./compose/clickhouse-server/config.d/config.xml:/etc/clickhouse-server/config.d/config.xml
+      - ./compose/clickhouse-server/users.d/users.xml:/etc/clickhouse-server/users.d/users.xml
+    ports:
+      - "8125:8123"
+
   ddl_logs:
     build:
       context: .
@@ -106,7 +119,6 @@ services:
     container_name: ddl_logs
     depends_on:
       - kafka_broker
-      - clickhouse
     volumes:
       - ./consumers/ddl_logs.py:/app/ddl_logs.py
     env_file:
@@ -117,3 +129,5 @@ services:
 volumes:
   zookeeper_data:
   kafka_data:
+  clickhouse_data:
+  clickhouse_logs:
